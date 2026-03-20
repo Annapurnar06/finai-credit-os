@@ -18,8 +18,46 @@ logger = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("finai_starting", version="0.1.0")
+    await _seed_demo_data()
     yield
     logger.info("finai_shutting_down")
+
+
+async def _seed_demo_data() -> None:
+    """Auto-load 4 demo borrower profiles on startup."""
+    import uuid
+
+    from demo.scenarios.borrower_profiles import ALL_SCENARIOS
+
+    from finai.api.routes.applications import _applications, _run_los_pipeline
+
+    for scenario_key, scenario in ALL_SCENARIOS.items():
+        app_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"finai-demo-{scenario_key}"))
+        borrower_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"finai-borrower-{scenario['pan']}"))
+
+        documents = [
+            {
+                "id": str(uuid.uuid5(uuid.NAMESPACE_DNS, f"doc-{scenario_key}-{i}")),
+                "filename": doc["filename"],
+                "doc_type": doc.get("doc_type", "unknown"),
+                "content_text": doc["content_text"],
+            }
+            for i, doc in enumerate(scenario["documents"])
+        ]
+
+        _applications[app_id] = {
+            "application_id": app_id,
+            "borrower_id": borrower_id,
+            "borrower_pan": scenario["pan"],
+            "product_type": scenario.get("product_type", "personal_loan"),
+            "requested_amount": scenario.get("requested_amount", 0),
+            "status": "documents_submitted",
+            "documents": documents,
+            "result": None,
+        }
+
+        await _run_los_pipeline(app_id)
+        logger.info("demo_seed_complete", scenario=scenario_key, app_id=app_id[:8])
 
 
 app = FastAPI(
