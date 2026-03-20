@@ -2,6 +2,9 @@
 
 Agents are stateless functions: read state → call tools → return typed result.
 Per Anthropic best practices: Orchestrator-Worker pattern with tool use.
+
+Memory integration: every extraction auto-stores results in Mem0 for
+cross-agent knowledge sharing and borrower memory compounding.
 """
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ import structlog
 
 from finai.core.audit import PostgresAuditLog, compute_hash
 from finai.core.llm import get_llm_router
+from finai.core.memory import get_memory
 from finai.core.models import AgentResult, AuditEvent, CommitClass, ProvenanceRecord
 
 logger = structlog.get_logger()
@@ -60,6 +64,16 @@ async def run_extraction_agent(
             latency_ms=result.get("latency_ms", 0),
         )
 
+        # Store extraction result in borrower memory (Mem0 / fallback)
+        if borrower_id and agent_result.status == "success":
+            memory = get_memory()
+            await memory.remember_fact(
+                borrower_id=borrower_id,
+                fact=f"{agent_name} extracted {doc_type}: {_summarize_extraction(parsed)}",
+                source_agent=agent_name,
+                category=f"extraction.{doc_type}",
+            )
+
         if audit_log:
             await audit_log.append(AuditEvent(
                 event_type=f"extraction.{doc_type}",
@@ -86,6 +100,17 @@ async def run_extraction_agent(
             errors=[str(e)],
             latency_ms=latency,
         )
+
+
+def _summarize_extraction(parsed: dict[str, Any]) -> str:
+    """Create a short summary of extraction for memory storage."""
+    parts = []
+    for key, val in parsed.items():
+        if val is not None and val != "" and val != [] and not isinstance(val, dict):
+            parts.append(f"{key}={val}")
+        if len(parts) >= 5:
+            break
+    return ", ".join(parts) if parts else "no fields extracted"
 
 
 def _compute_confidence(parsed: dict[str, Any]) -> float:

@@ -59,7 +59,7 @@ SALARIED_CLEAN = {
             "filename": "rajan_salary_slip_feb2026.pdf",
             "doc_type": "salary_slip",
             "content_text": (
-                "TCS LIMITED — SALARY SLIP\n"
+                "TCS LIMITED - SALARY SLIP\n"
                 "Employee: RAJAN KRISHNAMURTHY\n"
                 "Employee ID: TCS-CBE-45678\n"
                 "Month: February 2026\n\n"
@@ -75,6 +75,23 @@ SALARIED_CLEAN = {
                 "Income Tax: ₹6,500\n"
                 "Total Deductions: ₹12,100\n\n"
                 "Net Salary: ₹72,900\n"
+            ),
+        },
+        {
+            "filename": "rajan_cibil_report.pdf",
+            "doc_type": "credit_bureau",
+            "content_text": (
+                "TRANSUNION CIBIL — CREDIT INFORMATION REPORT\n"
+                "Consumer Name: RAJAN KRISHNAMURTHY\n"
+                "PAN: DEFPR5678B\n"
+                "CIBIL Score: 745\n\n"
+                "ACCOUNT SUMMARY:\n"
+                "Active Accounts: 1\n"
+                "- Car Loan (ICICI Bank): Sanctioned ₹6,00,000 | Outstanding ₹1,80,000 | EMI ₹12,000 | DPD: NIL\n\n"
+                "Enquiry Count (Last 6 months): 2\n"
+                "Write-offs: NIL\n"
+                "Settlements: NIL\n"
+                "Oldest Tradeline: 48 months\n"
             ),
         },
     ],

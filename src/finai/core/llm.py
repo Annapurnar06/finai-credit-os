@@ -6,12 +6,15 @@ Primary: Anthropic Claude. Fallback: OpenAI. Future: local SLMs via Ollama/vLLM.
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from anthropic import AsyncAnthropic
 
 from finai.config import get_settings
+
+if TYPE_CHECKING:
+    from finai.core.mock_llm import MockLLMRouter
 
 logger = structlog.get_logger()
 
@@ -145,11 +148,24 @@ class LLMRouter:
         }
 
 
-_router: LLMRouter | None = None
+_router: LLMRouter | MockLLMRouter | None = None
 
 
-def get_llm_router() -> LLMRouter:
+def get_llm_router() -> LLMRouter | MockLLMRouter:
     global _router
     if _router is None:
-        _router = LLMRouter()
+        settings = get_settings()
+        if settings.anthropic_api_key:
+            _router = LLMRouter()
+            logger.info("llm_router_init", mode="live", provider="anthropic")
+        else:
+            from finai.core.mock_llm import MockLLMRouter
+            _router = MockLLMRouter()
+            logger.info("llm_router_init", mode="mock", note="Set ANTHROPIC_API_KEY for real LLM")
     return _router
+
+
+def reset_router() -> None:
+    """Reset router (useful for testing or switching modes)."""
+    global _router
+    _router = None

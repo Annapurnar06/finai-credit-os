@@ -27,6 +27,7 @@ from finai.agents.proposal.agents import (
     triangulate_income,
 )
 from finai.core.hitl import compile_decision_brief
+from finai.core.memory import get_memory
 from finai.core.models import ApplicationStatus, RiskFlag, RiskLevel
 from finai.core.policy import PolicyEngine
 from finai.core.state import LOSState
@@ -62,8 +63,11 @@ def route_to_extractors(state: LOSState) -> list[Send]:
 
     doc_map = {d["id"]: d for d in documents}
 
+    # Build a string-keyed lookup from the enum-keyed agent map
+    agent_map_str = {dt.value: fn for dt, fn in DOCUMENT_TYPE_TO_AGENT.items()}
+
     for doc_id, doc_type in classifications.items():
-        if doc_type in DOCUMENT_TYPE_TO_AGENT and doc_id in doc_map:
+        if doc_type in agent_map_str and doc_id in doc_map:
             doc = doc_map[doc_id]
             sends.append(Send("extract_document", {
                 "document_id": doc_id,
@@ -87,7 +91,8 @@ async def extract_document(state: dict[str, Any]) -> dict[str, Any]:
     """Single document extraction node — called in parallel via Send()."""
     doc_type = state.get("document_type", "unknown")
     content = state.get("content", "")
-    agent_fn = DOCUMENT_TYPE_TO_AGENT.get(doc_type)
+    agent_map_str = {dt.value: fn for dt, fn in DOCUMENT_TYPE_TO_AGENT.items()}
+    agent_fn = agent_map_str.get(doc_type)
     if not agent_fn or not content:
         return {
             "extraction_results": {doc_type: {
@@ -231,16 +236,31 @@ def route_after_proposal(state: LOSState) -> str:
 
 async def auto_approve(state: LOSState) -> dict[str, Any]:
     """Auto-approve clean cases with full audit trail."""
+    brief = compile_decision_brief(
+        state.get("extraction_results", {}),
+        state.get("proposal"),
+        state.get("risk_flags", []),
+        state.get("policy_version", ""),
+    )
+
+    # Store decision in borrower memory
+    borrower_id = state.get("borrower_id", "")
+    if borrower_id:
+        memory = get_memory()
+        await memory.remember_interaction(
+            borrower_id=borrower_id,
+            channel="los_pipeline",
+            summary=f"Application {state.get('application_id', '')} auto-approved. "
+            f"Eligible amount: {state.get('eligibility', {}).get('max_loan_amount', 'N/A')}",
+            agent_id="AutoApprovalAgent",
+            application_id=state.get("application_id", ""),
+        )
+
     return {
         "status": ApplicationStatus.APPROVED.value,
         "final_decision": "approved",
         "hitl_required": False,
-        "decision_brief": compile_decision_brief(
-            state.get("extraction_results", {}),
-            state.get("proposal"),
-            state.get("risk_flags", []),
-            state.get("policy_version", ""),
-        ),
+        "decision_brief": brief,
     }
 
 
@@ -252,6 +272,21 @@ async def hitl_review(state: LOSState) -> dict[str, Any]:
         state.get("risk_flags", []),
         state.get("policy_version", ""),
     )
+
+    # Store HITL trigger in borrower memory
+    borrower_id = state.get("borrower_id", "")
+    if borrower_id:
+        memory = get_memory()
+        flags = state.get("risk_flags", [])
+        flag_summary = ", ".join(f.get("description", "")[:50] for f in flags[:3])
+        await memory.remember_interaction(
+            borrower_id=borrower_id,
+            channel="los_pipeline",
+            summary=f"Application {state.get('application_id', '')} sent to HITL review. "
+            f"Flags: {flag_summary}",
+            agent_id="HITLRouter",
+            application_id=state.get("application_id", ""),
+        )
 
     return {
         "status": ApplicationStatus.HITL_PENDING.value,

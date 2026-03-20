@@ -6,7 +6,6 @@ Usage: python -m demo.run [scenario_name]
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 import time
 from typing import Any
@@ -20,7 +19,7 @@ async def run_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
 
     name = scenario["name"]
     print(f"\n{'='*70}")
-    print(f"  FINAI Credit OS — LOS Pipeline Demo")
+    print("  FINAI Credit OS — LOS Pipeline Demo")
     print(f"  Borrower: {name}")
     print(f"  Scenario: {scenario['scenario']}")
     print(f"  {scenario['description']}")
@@ -49,7 +48,7 @@ async def run_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
     elapsed = time.monotonic() - start
 
     # Print results
-    print(f"\n[2/4] Document Extraction Results:")
+    print("\n[2/4] Document Extraction Results:")
     extraction = result.get("extraction_results", {})
     for doc_type, ext_result in extraction.items():
         status = ext_result.get("status", "unknown")
@@ -57,7 +56,7 @@ async def run_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
         icon = "+" if status == "success" else ("~" if status == "low_confidence" else "x")
         print(f"  [{icon}] {doc_type}: {status} (confidence: {conf:.0%})")
 
-    print(f"\n[3/4] Proposal Summary:")
+    print("\n[3/4] Proposal Summary:")
     proposal = result.get("proposal", {})
     if proposal:
         profile = proposal.get("borrower_profile", {})
@@ -71,7 +70,7 @@ async def run_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
             print(f"  Max Loan: Rs.{eligibility.get('max_loan_amount', 0):,.0f}")
         print(f"  DBR Ratio: {dbr.get('dbr_ratio', 0):.1%}")
 
-    print(f"\n[4/4] Decision:")
+    print("\n[4/4] Decision:")
     status = result.get("status", "unknown")
     flags = result.get("risk_flags", [])
     red = [f for f in flags if f.get("level") == "RED"]
@@ -86,7 +85,14 @@ async def run_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
         for f in amber:
             print(f"    [AMBER] {f.get('description', '')}")
 
-    print(f"\n  Pipeline completed in {elapsed:.1f}s")
+    # Show memory stats
+    from finai.core.memory import get_memory
+    memory = get_memory()
+    mem_stats = memory.stats
+    print(f"\n  Memory: {mem_stats.get('mode', '?')} | "
+          f"Borrowers tracked: {mem_stats.get('fallback_borrowers', 0)} | "
+          f"Total memories: {mem_stats.get('fallback_total_memories', 0)}")
+    print(f"  Pipeline completed in {elapsed:.1f}s")
     print(f"{'='*70}\n")
 
     return result
