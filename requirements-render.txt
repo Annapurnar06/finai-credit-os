@@ -10,3 +10,6 @@ langchain-core==0.3.62
 anthropic==0.86.0
 python-dateutil==2.9.0.post0
 python-multipart==0.0.20
+sqlalchemy[asyncio]==2.0.41
+greenlet==3.2.3
+mem0ai==0.1.95
