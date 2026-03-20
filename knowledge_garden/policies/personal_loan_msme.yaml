@@ -1,0 +1,29 @@
+version: "1.0.0"
+effective_date: "2026-03-01"
+product: "personal_loan"
+segment: "msme"
+description: "Personal loan policy for MSME borrowers"
+rules:
+  eligibility:
+    min_age: 21
+    max_age: 65
+    min_monthly_income: 15000
+    min_bureau_score: 0
+    max_dbr: 0.55
+  auto_approval:
+    bureau_score_min: 720
+    dbr_max: 0.35
+    all_risk_flags: "GREEN"
+  loan_limits:
+    min_amount: 25000
+    max_amount: 5000000
+    max_tenure_months: 84
+  rate_bands:
+    excellent: {min_score: 720, rate: 11.5}
+    good: {min_score: 680, rate: 13.5}
+    fair: {min_score: 600, rate: 16.0}
+    thin_file: {min_score: 0, rate: 18.0}
+  gram_score:
+    enabled: true
+    min_gram_score: 550
+    description: "GrāmScore alternative scoring for thin/no bureau file borrowers"

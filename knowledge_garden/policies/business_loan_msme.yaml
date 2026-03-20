@@ -1,0 +1,29 @@
+version: "1.0.0"
+effective_date: "2026-03-01"
+product: "business_loan"
+segment: "msme"
+description: "Business loan policy for MSMEs"
+rules:
+  eligibility:
+    min_age: 21
+    max_age: 65
+    min_monthly_income: 20000
+    min_bureau_score: 0
+    max_dbr: 0.60
+    min_gst_filing_months: 6
+  auto_approval:
+    bureau_score_min: 730
+    dbr_max: 0.40
+    all_risk_flags: "GREEN"
+  loan_limits:
+    min_amount: 100000
+    max_amount: 10000000
+    max_tenure_months: 84
+  collateral:
+    required_above: 5000000
+    ltv_max: 0.70
+  rate_bands:
+    excellent: {min_score: 730, rate: 11.0}
+    good: {min_score: 680, rate: 13.0}
+    fair: {min_score: 600, rate: 15.5}
+    thin_file: {min_score: 0, rate: 17.5}

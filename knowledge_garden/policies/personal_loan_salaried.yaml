@@ -1,0 +1,24 @@
+version: "1.0.0"
+effective_date: "2026-03-01"
+product: "personal_loan"
+segment: "salaried"
+description: "Personal loan policy for salaried employees"
+rules:
+  eligibility:
+    min_age: 21
+    max_age: 58
+    min_monthly_income: 25000
+    min_bureau_score: 650
+    max_dbr: 0.50
+  auto_approval:
+    bureau_score_min: 750
+    dbr_max: 0.40
+    all_risk_flags: "GREEN"
+  loan_limits:
+    min_amount: 50000
+    max_amount: 2500000
+    max_tenure_months: 60
+  rate_bands:
+    excellent: {min_score: 750, rate: 10.5}
+    good: {min_score: 700, rate: 12.0}
+    fair: {min_score: 650, rate: 15.0}
